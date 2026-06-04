@@ -1,0 +1,26 @@
+.app {
+  min-height: 100vh;
+  padding: 40px 16px 64px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  background: radial-gradient(circle at top left, rgba(99, 102, 241, 0.16), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(16, 185, 129, 0.12), transparent 24%);
+}
+
+.app h1,
+.app h2,
+.app h3 {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.app .dashboard {
+  width: 100%;
+}
+
+.app .glass-effect {
+  width: 100%;
+  max-width: 1280px;
+  padding: 32px;
+}
+

@@ -1,0 +1,119 @@
+.dashboard {
+  display: grid;
+  gap: 32px;
+}
+
+.dashboard-header {
+  text-align: center;
+  padding: 8px 16px;
+}
+
+.dashboard-header h1 {
+  font-size: clamp(2rem, 3.4vw, 3.2rem);
+  margin-bottom: 12px;
+  letter-spacing: -0.04em;
+  background: linear-gradient(135deg, #a78bfa 0%, #60a5fa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.dashboard-header p {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.dashboard-layout {
+  display: grid;
+  grid-template-columns: minmax(320px, 1.4fr) minmax(300px, 0.9fr);
+  gap: 24px;
+}
+
+@media (max-width: 900px) {
+  .dashboard-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.left-panel,
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.panel-section {
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 20px;
+  padding: 28px;
+  box-shadow: 0 22px 56px rgba(0, 0, 0, 0.22);
+}
+
+.panel-section h2 {
+  font-size: 1.25rem;
+  margin-bottom: 18px;
+  color: var(--text-primary);
+}
+
+.error-message {
+  margin-top: 18px;
+  padding: 18px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: 14px;
+  color: #fee2e2;
+}
+
+.error-message p {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.logs-section {
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 20px;
+  padding: 28px;
+  margin-top: 20px;
+}
+
+.logs-section h2 {
+  font-size: 1.25rem;
+  margin-bottom: 18px;
+  color: var(--text-primary);
+}
+
+.source-selector {
+  display: flex;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 12px;
+  padding: 5px;
+  margin-bottom: 22px;
+}
+
+.source-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  padding: 14px 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.source-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.source-btn.active {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.95), rgba(139, 92, 246, 0.95));
+  color: #fff;
+  box-shadow: 0 10px 25px rgba(99, 102, 241, 0.18);
+}
+
