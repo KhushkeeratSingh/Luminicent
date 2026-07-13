@@ -1,0 +1,585 @@
+.github-page {
+  min-height: 100vh;
+  padding: 32px;
+  background: radial-gradient(circle at top left, rgba(88, 125, 255, 0.18), transparent 28%),
+    radial-gradient(circle at top right, rgba(114, 46, 255, 0.18), transparent 25%),
+    #070a16;
+  color: #e5e9ff;
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.github-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: flex-start;
+  margin-bottom: 28px;
+}
+
+.eyebrow {
+  display: inline-block;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: #a9b3ff;
+  font-size: 0.75rem;
+  margin-bottom: 14px;
+}
+
+.github-hero h1 {
+  font-size: clamp(2rem, 2.8vw, 3.4rem);
+  line-height: 1.05;
+  margin: 0;
+  color: #f4f7ff;
+}
+
+.github-hero p {
+  margin: 12px 0 0;
+  max-width: 560px;
+  color: #b9c2ff;
+  font-size: 1rem;
+}
+
+.github-status-panel {
+  display: grid;
+  gap: 10px;
+  align-items: center;
+}
+
+.status-chip,
+.status-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 18px;
+  border-radius: 999px;
+  background: rgba(30, 36, 72, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #dbdeff;
+  font-size: 0.95rem;
+}
+
+.github-grid {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: 260px minmax(0, 1fr);
+  align-items: start;
+}
+
+.dashboard-layout {
+  grid-template-columns: 260px minmax(0, 1fr);
+}
+
+.glass-card {
+  background: rgba(13, 18, 36, 0.84);
+  border: 1px solid rgba(115, 108, 255, 0.16);
+  box-shadow: 0 30px 100px rgba(8, 11, 23, 0.18);
+  border-radius: 26px;
+  padding: 24px;
+  backdrop-filter: blur(18px);
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.panel-header h2 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.panel-header p {
+  margin: 8px 0 0;
+  color: #abb4ff;
+  font-size: 0.95rem;
+}
+
+.refresh-button,
+.deploy-button,
+.select-repo-button {
+  border: none;
+  cursor: pointer;
+  color: #f8f9ff;
+  background: linear-gradient(135deg, #7c5dff, #5153ff);
+  border-radius: 14px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.refresh-button,
+.deploy-button {
+  padding: 12px 18px;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.select-repo-button {
+  padding: 10px 14px;
+  min-width: 130px;
+}
+
+.refresh-button:hover,
+.deploy-button:hover,
+.select-repo-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 18px 35px rgba(92, 90, 255, 0.24);
+}
+
+.deploy-button:disabled,
+.refresh-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.repo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.repo-card,
+.history-card,
+.metrics-card,
+.deploy-panel,
+.logs-panel {
+  border-radius: 24px;
+}
+
+.repo-card {
+  border-radius: 22px;
+  background: rgba(13, 18, 36, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.repo-card:hover,
+.repo-card.selected {
+  transform: translateY(-3px);
+  border-color: rgba(123, 90, 255, 0.35);
+  box-shadow: 0 18px 48px rgba(53, 56, 120, 0.18);
+}
+
+.repo-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.repo-card h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.repo-card p {
+  margin: 0;
+  color: #bbc3ed;
+  font-size: 0.94rem;
+  line-height: 1.55;
+  min-height: 48px;
+}
+
+.repo-meta-row {
+  display: flex;
+  justify-content: space-between;
+  color: #8f96af;
+  font-size: 0.9rem;
+}
+
+.visibility-pill {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.visibility-pill.public {
+  background: rgba(112, 172, 255, 0.16);
+  color: #83bbff;
+}
+
+.visibility-pill.private {
+  background: rgba(255, 119, 198, 0.14);
+  color: #ff9cd1;
+}
+
+.repo-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.history-panel {
+  max-height: calc(100vh - 210px);
+  overflow: hidden;
+}
+
+.history-list {
+  display: grid;
+  gap: 14px;
+  max-height: 640px;
+  overflow-y: auto;
+}
+
+.history-card {
+  width: 100%;
+  text-align: left;
+  padding: 18px;
+  border-radius: 22px;
+  background: rgba(12, 16, 34, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #dde1ff;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.history-card:hover,
+.history-card.active {
+  border-color: rgba(123, 90, 255, 0.35);
+  transform: translateY(-2px);
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.history-header strong {
+  display: block;
+}
+
+.history-header span {
+  color: #9fb2ff;
+  font-size: 0.92rem;
+}
+
+.history-badge {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.history-badge.active {
+  background: rgba(66, 146, 255, 0.18);
+  color: #9ec8ff;
+}
+
+.history-badge.finished {
+  background: rgba(86, 212, 115, 0.16);
+  color: #b5ffe3;
+}
+
+.history-badge.failed {
+  background: rgba(255, 92, 109, 0.16);
+  color: #ffb8c2;
+}
+
+.history-meta {
+  display: grid;
+  gap: 6px;
+  color: #8a94b9;
+  font-size: 0.85rem;
+}
+
+.deploy-panel,
+.logs-panel {
+  grid-column: span 2;
+}
+
+.filter-row {
+  display: grid;
+  grid-template-columns: 1fr 180px 160px;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.filter-row input,
+.filter-row select {
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(19, 27, 60, 0.9);
+  color: #edf0ff;
+}
+
+.filter-row input::placeholder {
+  color: #7c87c9;
+}
+
+.deploy-field span,
+.deploy-field select {
+  min-height: 48px;
+}
+
+.deploy-summary {
+  display: grid;
+  gap: 18px;
+}
+
+.deployment-meta {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  background: rgba(21, 29, 60, 0.72);
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.deployment-meta span {
+  display: block;
+  color: #96a0ee;
+  font-size: 0.82rem;
+}
+
+.deployment-meta strong {
+  display: block;
+  color: #f8f9ff;
+  margin-top: 4px;
+}
+
+.alert-box {
+  border-radius: 18px;
+  padding: 14px 18px;
+  margin-bottom: 18px;
+  font-weight: 500;
+}
+
+.error-box {
+  background: rgba(255, 81, 122, 0.12);
+  border: 1px solid rgba(255, 81, 122, 0.25);
+  color: #ffb7ca;
+}
+
+.toast {
+  position: fixed;
+  right: 24px;
+  top: 24px;
+  z-index: 50;
+  padding: 14px 20px;
+  border-radius: 18px;
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.22);
+  color: #fff;
+  max-width: 320px;
+}
+
+.toast-info {
+  background: rgba(55, 87, 166, 0.94);
+}
+
+.toast-success {
+  background: rgba(69, 167, 92, 0.92);
+}
+
+.toast-error {
+  background: rgba(207, 71, 98, 0.92);
+}
+
+.toast-warning {
+  background: rgba(197, 148, 49, 0.92);
+}
+
+.logs-grid {
+  display: grid;
+  grid-template-columns: 1.7fr 0.95fr;
+  gap: 22px;
+  align-items: start;
+}
+
+.terminal-window {
+  background: rgba(1, 4, 14, 0.96);
+  border: 1px solid rgba(114, 102, 255, 0.18);
+  border-radius: 24px;
+  min-height: 360px;
+  max-height: 540px;
+  padding: 22px;
+  overflow-y: auto;
+  font-family: 'Fira Code', 'JetBrains Mono', monospace;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: #d7dbff;
+}
+
+.terminal-line {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 10px;
+  align-items: baseline;
+}
+
+.terminal-prefix {
+  width: 90px;
+  color: #7c89ff;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.terminal-message {
+  color: #d7dbff;
+  white-space: pre-wrap;
+}
+
+.terminal-line.build {
+  color: #ffee7f;
+}
+
+.terminal-line.runtime {
+  color: #9df6ff;
+}
+
+.terminal-line.error {
+  color: #ff8f96;
+}
+
+.terminal-line.success {
+  color: #96ffb5;
+}
+
+.terminal-line.status {
+  color: #b3b9ff;
+}
+
+.metrics-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.metrics-card {
+  background: rgba(10, 14, 34, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 24px;
+  padding: 18px;
+  min-height: 180px;
+}
+
+.metrics-card h3 {
+  margin: 0 0 14px;
+  color: #e0e8ff;
+}
+
+.metric-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: #c9d1ff;
+}
+
+.metric-row:last-child {
+  border-bottom: none;
+}
+
+.pipeline-track {
+  display: grid;
+  gap: 10px;
+}
+
+.pipeline-step {
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(19, 27, 60, 0.9);
+  color: #c7cfff;
+  font-size: 0.92rem;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.pipeline-step.active {
+  background: linear-gradient(135deg, rgba(124, 93, 255, 0.18), rgba(81, 83, 255, 0.2));
+  border-color: rgba(124, 93, 255, 0.35);
+  color: #f7f7ff;
+}
+
+.pipeline-step.complete {
+  background: rgba(63, 167, 255, 0.12);
+  border-color: rgba(63, 167, 255, 0.25);
+}
+
+.pipeline-step.pending {
+  opacity: 0.6;
+}
+
+.skeleton-card {
+  min-height: 140px;
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-title,
+.skeleton-line {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+}
+
+.skeleton-title {
+  width: 60%;
+  height: 22px;
+  margin-bottom: 18px;
+}
+
+.skeleton-line {
+  width: 100%;
+  height: 14px;
+  margin-bottom: 10px;
+}
+
+.skeleton-line.short {
+  width: 70%;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (max-width: 1080px) {
+  .github-grid,
+  .logs-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .deploy-panel,
+  .logs-panel {
+    grid-column: span 1;
+  }
+}
+
+@media (max-width: 720px) {
+  .github-page {
+    padding: 20px;
+  }
+
+  .github-hero {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-row {
+    grid-template-columns: 1fr;
+  }
+
+  .repo-grid {
+    grid-template-columns: 1fr;
+  }
+}

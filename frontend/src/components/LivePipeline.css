@@ -1,0 +1,137 @@
+.live-pipeline {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.pipeline-stages {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  overflow-x: auto;
+  padding: 14px 0;
+}
+
+.pipeline-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 110px;
+  padding: 18px 14px;
+  border-radius: 18px;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  transition: transform 0.25s ease, background 0.25s ease, border-color 0.25s ease;
+  position: relative;
+}
+
+.pipeline-stage.active {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.18), rgba(139, 92, 246, 0.16));
+  border-color: rgba(99, 102, 241, 0.45);
+  transform: scale(1.06);
+}
+
+.pipeline-stage.complete {
+  background: rgba(16, 185, 129, 0.16);
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+.stage-icon {
+  font-size: 1.9rem;
+  margin-bottom: 10px;
+}
+
+.stage-label {
+  font-size: 0.95rem;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.pipeline-stage.active .stage-label,
+.pipeline-stage.complete .stage-label {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.stage-loader {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--primary);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  bottom: 10px;
+  right: 10px;
+}
+
+.pipeline-connector {
+  width: 42px;
+  height: 3px;
+  background: rgba(148, 163, 184, 0.14);
+  transition: background 0.25s ease;
+}
+
+.pipeline-connector.complete {
+  background: var(--success);
+}
+
+.pipeline-info {
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 18px;
+}
+
+.pipeline-info p {
+  margin: 10px 0;
+  font-size: 0.95rem;
+}
+
+.status-detail {
+  margin-top: 12px;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.stop-button {
+  margin-top: 16px;
+  padding: 12px 18px;
+  border: none;
+  border-radius: 999px;
+  background: var(--error);
+  color: #fff;
+  font-weight: 700;
+}
+
+.stop-button:hover {
+  background: #dc2626;
+}
+
+.pipeline-info code {
+  background: rgba(15, 23, 42, 0.95);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-family: 'Fira Code', monospace;
+  color: var(--primary);
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  background: rgba(99, 102, 241, 0.14);
+  color: var(--primary);
+}
+
+.status-badge.error {
+  background: rgba(239, 68, 68, 0.18);
+  color: var(--error);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
