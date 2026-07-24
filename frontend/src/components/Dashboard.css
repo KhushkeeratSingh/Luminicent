@@ -85,6 +85,10 @@
   color: var(--text-primary);
 }
 
+.report-section {
+  margin-top: 20px;
+}
+
 .source-selector {
   display: flex;
   background: rgba(99, 102, 241, 0.08);

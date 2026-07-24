@@ -9,15 +9,18 @@ import axios from 'axios';
 import {
   normalizeRepoRoot,
   ensureDockerfile,
+  findBuildContext,
   validateGithubRepo
 } from '../utils/dockerfileHelper.js';
+import { analyzeProduction } from '../utils/productionAnalyzer.js';
 
 const router = express.Router();
 
 // Initialize Passport Strategy for GitHub
 const clientId = process.env.GITHUB_CLIENT_ID;
 const clientSecret = process.env.GITHUB_CLIENT_SECRET;
-const redirectUri = process.env.GITHUB_REDIRECT_URI;
+const redirectUri = process.env.GITHUB_REDIRECT_URI || 'http://localhost:5000/api/github/callback';
+const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 if (clientId && clientId !== 'your_github_client_id_here') {
   passport.use(new GitHubStrategy({
@@ -168,31 +171,33 @@ const cleanupPath = (targetPath) => {
 
 // Route: Redirect to GitHub authorize page
 router.get('/login', (req, res, next) => {
-  console.log("CLIENT ID:", process.env.GITHUB_CLIENT_ID);
-  const currentClientId = process.env.GITHUB_CLIENT_ID;
-  if (!currentClientId) {
-    return res.status(500).json({
-      error: "Missing Client ID"
-    });
+  const currentClientId = clientId;
+  if (!currentClientId || currentClientId === 'your_github_client_id_here') {
+    const errorMessage = encodeURIComponent('GitHub OAuth is not configured on the server. Use a Personal Access Token instead.');
+    return res.redirect(`${frontendUrl}/github-success?github_error=${errorMessage}`);
   }
+
   const githubURL =
     `https://github.com/login/oauth/authorize` +
     `?client_id=${currentClientId}` +
+    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
     `&scope=repo`;
-  console.log(githubURL);
+  console.log('Redirecting to GitHub OAuth:', githubURL);
   res.redirect(githubURL);
 });
 
 // Route: Handle GitHub redirect callback
 router.get('/callback', async (req, res) => {
   const { code } = req.query;
-  const clientId = process.env.GITHUB_CLIENT_ID;
-  const clientSecret = process.env.GITHUB_CLIENT_SECRET;
-  const redirectUri = process.env.GITHUB_REDIRECT_URI;
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+  if (!clientId || clientId === 'your_github_client_id_here' || !clientSecret) {
+    const errorMessage = encodeURIComponent('GitHub OAuth client credentials are missing or invalid.');
+    return res.redirect(`${frontendUrl}/github-success?github_error=${errorMessage}`);
+  }
 
   if (!code) {
-    return res.status(400).json({ error: 'Authorization code is required' });
+    const errorMessage = encodeURIComponent('Authorization code is required.');
+    return res.redirect(`${frontendUrl}/github-success?github_error=${errorMessage}`);
   }
 
   try {
@@ -207,17 +212,22 @@ router.get('/callback', async (req, res) => {
       }
     });
 
-    console.log("TOKEN RESPONSE:", tokenResponse.data);
+    console.log('TOKEN RESPONSE:', tokenResponse.data);
 
     if (tokenResponse.data.error) {
       throw new Error(tokenResponse.data.error_description || tokenResponse.data.error);
     }
 
     const token = tokenResponse.data.access_token;
+    if (!token) {
+      throw new Error('GitHub did not return an access token.');
+    }
+
     res.redirect(`${frontendUrl}/github-success?github_token=${encodeURIComponent(token)}`);
   } catch (error) {
     console.error('OAuth Callback Error:', error);
-    res.redirect(`${frontendUrl}/github-success?github_error=${encodeURIComponent(error.message)}`);
+    const errorMessage = encodeURIComponent(error.message || 'Unknown OAuth callback error');
+    res.redirect(`${frontendUrl}/github-success?github_error=${errorMessage}`);
   }
 });
 
@@ -300,18 +310,22 @@ router.post('/deploy', async (req, res) => {
   try {
     fs.mkdirSync(path.dirname(zipPath), { recursive: true });
 
-    dockerOrchestrator.emit(sessionId, 'status', {
-      sessionId,
+    dockerOrchestrator.emitStatus(sessionId, {
       status: 'DOWNLOAD',
+      stage: 'upload',
+      type: 'info',
+      percent: 5,
       message: `Downloading repository archive ${cleanOwner}/${cleanRepo} (branch: ${branch})...`
     });
 
     const zipballUrl = `https://api.github.com/repos/${cleanOwner}/${cleanRepo}/zipball/${encodeURIComponent(branch)}`;
     await downloadZipball(zipballUrl, zipPath, token);
 
-    dockerOrchestrator.emit(sessionId, 'status', {
-      sessionId,
+    dockerOrchestrator.emitStatus(sessionId, {
       status: 'EXTRACTING',
+      stage: 'extract',
+      type: 'info',
+      percent: 15,
       message: 'Extracting repository package...'
     });
 
@@ -319,12 +333,19 @@ router.post('/deploy', async (req, res) => {
     const zip = new AdmZip(zipPath);
     zip.extractAllTo(extractPath, true);
 
-    let buildContext = normalizeRepoRoot(extractPath);
-    const dockerfilePath = ensureDockerfile(buildContext)
+    const repoRoot = normalizeRepoRoot(extractPath);
+    const buildContext = findBuildContext(repoRoot);
+    console.log('GitHub deploy repoRoot:', repoRoot);
+    console.log('GitHub deploy buildContext:', buildContext);
+    console.log('GitHub build context files:', fs.readdirSync(buildContext));
 
-    dockerOrchestrator.emit(sessionId, 'status', {
-      sessionId,
+    const dockerfilePath = ensureDockerfile(buildContext);
+
+    dockerOrchestrator.emitStatus(sessionId, {
       status: 'EXTRACTED',
+      stage: 'extract',
+      type: 'success',
+      percent: 25,
       message: `Repository extracted. Using Dockerfile at ${path.relative(buildContext, dockerfilePath)}`
     });
 
@@ -332,17 +353,27 @@ router.post('/deploy', async (req, res) => {
     await dockerOrchestrator.buildImage(buildContext, imageName, sessionId, dockerfilePath);
 
     const container = await dockerOrchestrator.runContainer(imageName, sessionId);
+
+    const report = await analyzeProduction(buildContext, imageName, container);
+    dockerOrchestrator.emit(sessionId, 'production-report', {
+      sessionId,
+      report
+    });
+
     dockerOrchestrator.streamLogs(container, sessionId);
 
-    dockerOrchestrator.emit(sessionId, 'status', {
-      sessionId,
+    dockerOrchestrator.emitStatus(sessionId, {
       status: 'RUNNING',
+      stage: 'container',
+      type: 'success',
+      percent: 85,
       message: 'Container is running and logs are streaming.'
     });
 
     res.json({
       success: true,
       sessionId,
+      report,
       message: 'Simulation started'
     });
 
@@ -353,9 +384,11 @@ router.post('/deploy', async (req, res) => {
 
   } catch (error) {
     console.error('GitHub deployment error:', error);
-    dockerOrchestrator.emit(sessionId, 'status', {
-      sessionId,
+    dockerOrchestrator.emitStatus(sessionId, {
       status: 'ERROR',
+      stage: 'error',
+      type: 'error',
+      message: error.message,
       error: error.message
     });
     cleanupPath(extractPath);

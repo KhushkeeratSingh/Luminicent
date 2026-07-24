@@ -55,7 +55,7 @@ export default function FileUploader({ socket, onUploadStart, onUploadComplete }
 
       const data = await response.json()
       if (response.ok) {
-        onUploadComplete(data.sessionId)
+        onUploadComplete(data.sessionId, data.report)
       } else {
         alert('Upload failed: ' + data.error)
       }

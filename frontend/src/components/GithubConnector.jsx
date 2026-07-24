@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import './GithubConnector.css'
 
 export default function GithubConnector({ onDeployStart, onDeployComplete }) {
+  const navigate = useNavigate()
   const [token, setToken] = useState(localStorage.getItem('github_token') || '')
   const [user, setUser] = useState(null)
   const [repos, setRepos] = useState([])
@@ -82,7 +84,7 @@ export default function GithubConnector({ onDeployStart, onDeployComplete }) {
   }
 
   const handleGithubLogin = () => {
-    window.location.href = "http://localhost:5000/api/github/login";
+    navigate('/github-login')
   }
 
   const handlePatSubmit = (e) => {
@@ -151,7 +153,7 @@ export default function GithubConnector({ onDeployStart, onDeployComplete }) {
 
       const data = await response.json()
       if (response.ok) {
-        onDeployComplete(data.sessionId)
+        onDeployComplete(data.sessionId, data.report)
       } else {
         alert('Deployment failed: ' + data.error)
       }

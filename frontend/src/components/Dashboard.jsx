@@ -3,9 +3,10 @@ import FileUploader from './FileUploader'
 import GithubConnector from './GithubConnector'
 import LivePipeline from './LivePipeline'
 import TerminalViewer from './TerminalViewer'
+import ProductionReport from './ProductionReport'
 import './Dashboard.css'
 
-export default function Dashboard({ socket, sessionId, setSessionId, status, logs, errorMessage, onUploadStart, onUploadComplete, onStop }) {
+export default function Dashboard({ socket, sessionId, setSessionId, status, progress, logs, errorMessage, productionReport, onUploadStart, onUploadComplete, onStop }) {
   const [uploadedFile, setUploadedFile] = useState(null)
   const [deploySource, setDeploySource] = useState(() => 
     localStorage.getItem('github_token') ? 'github' : 'upload'
@@ -13,12 +14,12 @@ export default function Dashboard({ socket, sessionId, setSessionId, status, log
 
   const handleUploadStart = (file) => {
     setUploadedFile(file)
-    onUploadStart?.()
+    return onUploadStart?.()
   }
 
-  const handleUploadComplete = (newSessionId) => {
+  const handleUploadComplete = (newSessionId, report) => {
     setSessionId(newSessionId)
-    onUploadComplete?.(newSessionId)
+    onUploadComplete?.(newSessionId, report)
   }
 
   const handleGithubDeployStart = () => {
@@ -84,6 +85,7 @@ export default function Dashboard({ socket, sessionId, setSessionId, status, log
               <h2>Pipeline Execution</h2>
               <LivePipeline
                 status={status}
+                progress={progress}
                 sessionId={sessionId}
                 onStop={onStop}
               />
@@ -92,10 +94,16 @@ export default function Dashboard({ socket, sessionId, setSessionId, status, log
         )}
       </div>
 
-      {logs.length > 0 && (
+      {(sessionId || logs.length > 0) && (
         <div className="logs-section">
           <h2>Execution Logs</h2>
           <TerminalViewer logs={logs} />
+        </div>
+      )}
+
+      {productionReport && (
+        <div className="report-section">
+          <ProductionReport report={productionReport} />
         </div>
       )}
     </div>

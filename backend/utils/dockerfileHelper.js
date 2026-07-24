@@ -178,7 +178,60 @@ export const ensureDockerfile = (contextPath) => {
   fs.writeFileSync(dockerfilePath, dockerfileContent, 'utf-8')
   return dockerfilePath
 }
+export const findBuildContext = (rootPath) => {
 
+    const preferredFolders = [
+        "backend",
+        "server",
+        "api"
+    ];
+
+    // Prefer backend folders first
+    for (const folder of preferredFolders) {
+
+        const folderPath = path.join(rootPath, folder);
+
+        if (
+            fs.existsSync(folderPath) &&
+            fs.existsSync(path.join(folderPath, "package.json"))
+        ) {
+            return folderPath;
+        }
+    }
+
+    // Otherwise search recursively
+    const queue = [rootPath];
+
+    while (queue.length > 0) {
+
+        const current = queue.shift();
+
+        const files = fs.readdirSync(current);
+
+        if (
+            files.includes("package.json") ||
+            files.includes("requirements.txt") ||
+            files.includes("pyproject.toml")
+        ) {
+            return current;
+        }
+
+        for (const file of files) {
+
+            const full = path.join(current, file);
+
+            if (
+                fs.existsSync(full) &&
+                fs.statSync(full).isDirectory() &&
+                !["node_modules", ".git", "__MACOSX"].includes(file)
+            ) {
+                queue.push(full);
+            }
+        }
+    }
+
+    return rootPath;
+};
 export const validateGithubRepo = (owner, repo) => {
   const normalizedOwner = sanitizeGithubSegment(owner)
   const normalizedRepo = sanitizeGithubSegment(repo)

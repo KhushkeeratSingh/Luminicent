@@ -1,0 +1,97 @@
+.github-login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background: radial-gradient(circle at top left, rgba(98, 126, 255, 0.22), transparent 32%),
+    linear-gradient(135deg, #060814 0%, #10162d 100%);
+  color: #f3f6ff;
+}
+
+.github-login-card {
+  width: min(100%, 520px);
+  background: rgba(9, 12, 26, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 28px;
+  padding: 36px;
+  box-shadow: 0 30px 120px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(18px);
+}
+
+.login-badge {
+  display: inline-block;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(124, 93, 255, 0.16);
+  color: #c7cfff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+
+.github-login-card h1 {
+  margin: 0 0 10px;
+  font-size: 2rem;
+}
+
+.github-login-card p {
+  color: #b9c3f7;
+  line-height: 1.6;
+  margin: 0 0 24px;
+}
+
+.github-login-btn,
+.secondary-action {
+  width: 100%;
+  border: none;
+  border-radius: 16px;
+  padding: 14px 18px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.github-login-btn {
+  background: linear-gradient(135deg, #24292e 0%, #171a1d 100%);
+  color: white;
+  margin-bottom: 16px;
+}
+
+.secondary-action {
+  margin-top: 12px;
+  color: #dbe3ff;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.github-login-btn:hover,
+.secondary-action:hover {
+  transform: translateY(-1px);
+}
+
+.login-help-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+  color: #9eaadf;
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 16px;
+}
+
+@media (max-width: 720px) {
+  .github-login-page {
+    padding: 20px;
+  }
+
+  .github-login-card {
+    padding: 24px;
+  }
+}

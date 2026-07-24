@@ -285,18 +285,22 @@ router.post('/deploy', async (req, res) => {
   try {
     fs.mkdirSync(path.dirname(zipPath), { recursive: true });
 
-    req.io.emit('status', {
-      sessionId,
+    dockerOrchestrator.emitStatus(sessionId, {
       status: 'DOWNLOADING',
+      stage: 'upload',
+      type: 'info',
+      percent: 5,
       message: `Downloading repository archive ${owner}/${repo} (branch: ${branch})...`
     });
 
     const zipballUrl = `https://api.github.com/repos/${owner}/${repo}/zipball/${branch}`;
     await downloadZipball(zipballUrl, zipPath, token);
 
-    req.io.emit('status', {
-      sessionId,
+    dockerOrchestrator.emitStatus(sessionId, {
       status: 'EXTRACTING',
+      stage: 'extract',
+      type: 'info',
+      percent: 15,
       message: 'Extracting repository package...'
     });
 
@@ -306,27 +310,24 @@ router.post('/deploy', async (req, res) => {
 
     // GitHub zipball extracts to a nested wrapper folder (e.g. owner-repo-commit_sha)
     // Look inside the extractPath. If there is a single directory, make it our buildContext
-    const files = fs.readdirSync(extractPath);
-    const validDirs = files.filter(f => f !== '.DS_Store' && f !== '__MACOSX');
-    let buildContext = extractPath;
+    const repoRoot = normalizeRepoRoot(extractPath);
+    const buildContext = findBuildContext(repoRoot);
+    console.log('GitHub deploy repoRoot:', repoRoot);
+    console.log('GitHub deploy buildContext:', buildContext);
+    console.log('GitHub build context files:', fs.readdirSync(buildContext));
 
-    if (validDirs.length === 1 && fs.statSync(path.join(extractPath, validDirs[0])).isDirectory()) {
-      buildContext = path.join(extractPath, validDirs[0]);
-    }
+    const dockerfilePath = ensureDockerfile(buildContext);
 
-    const dockerfilePath = path.join(buildContext, 'Dockerfile');
-    if (!fs.existsSync(dockerfilePath)) {
-      throw new Error('Dockerfile not found in the repository root. Please make sure the selected branch has a Dockerfile.');
-    }
-
-    req.io.emit('status', {
-      sessionId,
+    dockerOrchestrator.emitStatus(sessionId, {
       status: 'EXTRACTED',
-      message: 'Repository downloaded and extracted successfully'
+      stage: 'extract',
+      type: 'success',
+      percent: 25,
+      message: `Repository downloaded and extracted successfully and Dockerfile ready at ${path.relative(buildContext, dockerfilePath)}`
     });
 
     const imageName = `devops-sim-${sessionId}`;
-    await dockerOrchestrator.buildImage(buildContext, imageName, sessionId);
+    await dockerOrchestrator.buildImage(buildContext, imageName, sessionId, dockerfilePath);
 
     const container = await dockerOrchestrator.runContainer(imageName, sessionId);
     await dockerOrchestrator.streamLogs(container, sessionId);
@@ -345,9 +346,11 @@ router.post('/deploy', async (req, res) => {
 
   } catch (error) {
     console.error('GitHub deployment error:', error);
-    req.io.emit('status', {
-      sessionId,
+    dockerOrchestrator.emitStatus(sessionId, {
       status: 'ERROR',
+      stage: 'error',
+      type: 'error',
+      message: error.message,
       error: error.message
     });
     cleanupPath(extractPath);

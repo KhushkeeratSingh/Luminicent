@@ -3,7 +3,8 @@ import multer from 'multer';
 import AdmZip from 'adm-zip';
 import path from 'path';
 import fs from 'fs';
-import { normalizeRepoRoot, ensureDockerfile } from '../utils/dockerfileHelper.js';
+import {normalizeRepoRoot,ensureDockerfile,findBuildContext} from "../utils/dockerfileHelper.js";
+import { analyzeProduction } from "../utils/productionAnalyzer.js";
 
 const router = express.Router();
 
@@ -46,34 +47,65 @@ router.post('/upload', upload.single('file'), async (req, res) => {
   try {
     fs.mkdirSync(extractPath, { recursive: true });
 
-    req.io.emit('status', {
-      sessionId,
+    dockerOrchestrator.emitStatus(sessionId, {
       status: 'EXTRACTING',
+      stage: 'extract',
+      type: 'info',
+      percent: 10,
       message: 'Extracting application package...'
     });
 
     const zip = new AdmZip(uploadPath);
     zip.extractAllTo(extractPath, true);
 
-    const buildContext = normalizeRepoRoot(extractPath);
+    const repoRoot = normalizeRepoRoot(extractPath);
+    const buildContext = findBuildContext(repoRoot);
+    console.log("Build Context:", buildContext);
+    console.log("Files in Build Context:");
+    console.log(fs.readdirSync(buildContext));
     const dockerfilePath = ensureDockerfile(buildContext);
 
-    req.io.emit('status', {
-      sessionId,
+    dockerOrchestrator.emitStatus(sessionId, {
       status: 'EXTRACTED',
+      stage: 'extract',
+      type: 'success',
+      percent: 20,
       message: `Package extracted successfully and Dockerfile ready at ${path.relative(buildContext, dockerfilePath)}`
     });
 
     const imageName = `devops-sim-${sessionId}`;
-    await dockerOrchestrator.buildImage(buildContext, imageName, sessionId);
+    console.log("Session ID:", sessionId);
+    console.log("Image Name:", imageName);
+    await dockerOrchestrator.buildImage(
+    buildContext,
+    imageName,
+    sessionId,
+    dockerfilePath
+    );
 
     const container = await dockerOrchestrator.runContainer(imageName, sessionId);
+
+    const report = await analyzeProduction(
+      buildContext,
+      imageName,
+      container
+    );
+
+    console.log("========== Production Report ==========");
+    console.log(JSON.stringify(report, null, 2));
+
+    dockerOrchestrator.emit(sessionId, 'production-report', {
+      sessionId,
+      report
+    });
+
     await dockerOrchestrator.streamLogs(container, sessionId);
 
     res.json({
       success: true,
       sessionId,
-      message: 'Simulation started'
+      report,
+      message: 'Simulation completed'
     });
 
     setTimeout(async () => {
@@ -82,9 +114,11 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     }, 60000);
   } catch (error) {
     console.error('Upload error:', error);
-    req.io.emit('status', {
-      sessionId,
+    dockerOrchestrator.emitStatus(sessionId, {
       status: 'ERROR',
+      stage: 'error',
+      type: 'error',
+      message: error.message,
       error: error.message
     });
     cleanupPath(extractPath);

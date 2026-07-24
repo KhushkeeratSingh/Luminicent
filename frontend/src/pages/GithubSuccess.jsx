@@ -96,6 +96,7 @@ export default function GithubSuccess() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const urlToken = params.get('github_token')
+    const urlError = params.get('github_error')
     const localToken = localStorage.getItem('github_token')
     const activeToken = urlToken || localToken
 
@@ -104,7 +105,12 @@ export default function GithubSuccess() {
       window.history.replaceState({}, document.title, window.location.pathname)
     }
 
-    if (activeToken) {
+    if (urlError) {
+      const decodedError = decodeURIComponent(urlError)
+      setError(decodedError)
+      showToast(decodedError, 'error')
+      setLoadingRepos(false)
+    } else if (activeToken) {
       setToken(activeToken)
       showToast('GitHub connected successfully', 'success')
     } else {

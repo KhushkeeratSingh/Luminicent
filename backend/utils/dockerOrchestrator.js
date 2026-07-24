@@ -1,6 +1,7 @@
 import Docker from 'dockerode'
 import fs from 'fs'
 import path from 'path'
+import tar from "tar-fs";
 
 const docker = new Docker()
 
@@ -14,10 +15,69 @@ class DockerOrchestrator {
 
   emit(sessionId, event, payload) {
     if (sessionId) {
-      this.io.to(sessionId).emit(event, payload)
+      const room = this.io.sockets.adapter.rooms.get(sessionId)
+      if (room && room.size > 0) {
+        this.io.to(sessionId).emit(event, payload)
+      } else {
+        this.io.emit(event, payload)
+      }
     } else {
       this.io.emit(event, payload)
     }
+  }
+
+  emitStatus(sessionId, data = {}) {
+    const payload = {
+      sessionId,
+      timestamp: Date.now(),
+      type: data.type || 'info',
+      stage: data.stage || 'info',
+      percent: data.percent,
+      status: data.status,
+      message: data.message,
+      error: data.error
+    }
+
+    if (sessionId) {
+      this.io.to(sessionId).emit('status', payload)
+    } else {
+      this.io.emit('status', payload)
+    }
+  }
+
+  emitTerminalOutput(sessionId, type, message) {
+    const normalizedMessage = typeof message === 'string'
+      ? message
+      : message?.message || message?.data || JSON.stringify(message || '')
+
+    if (!normalizedMessage) return
+
+    const payload = {
+      sessionId,
+      type,
+      message: normalizedMessage,
+      timestamp: Date.now()
+    }
+
+    this.emit(sessionId, 'terminal_output', payload)
+
+    if (type === 'build') {
+      this.emit(sessionId, 'build_log', {
+        sessionId,
+        data: normalizedMessage
+      })
+    }
+
+    if (type === 'runtime') {
+      this.emit(sessionId, 'runtime_log', {
+        sessionId,
+        data: normalizedMessage
+      })
+    }
+
+    this.updateSession(sessionId, {
+      logs: [{ type, message: normalizedMessage, timestamp: Date.now() }]
+    })
   }
 
   createSession(sessionId, initial = {}) {
@@ -59,32 +119,41 @@ class DockerOrchestrator {
     const timeoutMs = 5 * 60 * 1000
     this.updateSession(sessionId, {
       imageName,
-      status: 'BUILD_IMAGE',
+      status: 'STARTING_BUILD',
       buildStart: Date.now()
     })
-    this.emit(sessionId, 'status', {
-      sessionId,
-      status: 'BUILD_IMAGE',
+    this.emitStatus(sessionId, {
+      status: 'STARTING_BUILD',
+      stage: 'build',
+      type: 'info',
+      percent: 10,
       message: `Building image: ${imageName}`
-    })
+    });
+    console.log("Checking Docker connection...");
+    const version = await docker.version();
+    console.log("Docker Version:", version.Version);
 
     // Validate build context exists
     if (!buildContext || !fs.existsSync(buildContext)) {
       const errMsg = `Build context not found: ${buildContext}`
-      this.emit(sessionId, 'status', {
-        sessionId,
+      this.emitStatus(sessionId, {
         status: 'BUILD_FAILED',
-        error: errMsg
+        stage: 'build',
+        type: 'error',
+        error: errMsg,
+        message: errMsg
       })
       throw new Error(errMsg)
     }
 
     if (!dockerfilePath || !fs.existsSync(dockerfilePath)) {
       const errMsg = `Dockerfile not found in build context: ${dockerfilePath}`
-      this.emit(sessionId, 'status', {
-        sessionId,
+      this.emitStatus(sessionId, {
         status: 'BUILD_FAILED',
-        error: errMsg
+        stage: 'build',
+        type: 'error',
+        error: errMsg,
+        message: errMsg
       })
       throw new Error(errMsg)
     }
@@ -94,19 +163,27 @@ class DockerOrchestrator {
       await new Promise((resolve, reject) => docker.ping((err) => err ? reject(err) : resolve()))
     } catch (err) {
       const errMsg = `Docker daemon not available: ${err.message || err}`
-      this.emit(sessionId, 'status', {
-        sessionId,
+      this.emitStatus(sessionId, {
         status: 'BUILD_FAILED',
-        error: errMsg
+        stage: 'build',
+        type: 'error',
+        error: errMsg,
+        message: errMsg
       })
       throw new Error(errMsg)
     }
 
-    const dockerfileRelative = path.relative(buildContext, dockerfilePath)
+    const dockerfileRelative = path.relative(buildContext, dockerfilePath).replace(/\\/g, '/')
+    const tarStream = tar.pack(buildContext);
     const stream = await docker.buildImage(
-      { context: buildContext, src: ['.'] },
-      { t: imageName, dockerfile: dockerfileRelative }
-    )
+      tarStream,
+      {
+        t: imageName,
+        dockerfile: dockerfileRelative
+      }
+    );
+
+    let builtImageId = null;
 
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
@@ -121,30 +198,63 @@ class DockerOrchestrator {
 
       docker.modem.followProgress(
         stream,
-        (err) => {
+        async (err) => {
           clearTimeout(timeout)
           if (err) {
-            this.emit(sessionId, 'status', {
-              sessionId,
+            this.emitStatus(sessionId, {
               status: 'BUILD_FAILED',
-              error: err.message
+              stage: 'build',
+              type: 'error',
+              error: err.message,
+              message: 'Docker build failed'
             })
             reject(err)
-          } else {
-            this.updateSession(sessionId, {
-              status: 'BUILD_SUCCESS',
-              buildEnd: Date.now()
-            })
-            this.emit(sessionId, 'status', {
-              sessionId,
-              status: 'BUILD_SUCCESS',
-              message: 'Image built successfully'
-            })
+            return
+          }
+
+          this.updateSession(sessionId, {
+            status: 'BUILD_IMAGE',
+            buildEnd: Date.now()
+          })
+          this.emitStatus(sessionId, {
+            status: 'BUILD_IMAGE',
+            stage: 'build',
+            type: 'success',
+            percent: 50,
+            message: 'Docker image built successfully'
+          })
+
+          try {
+            let image = docker.getImage(imageName)
+            let inspect = null
+            try {
+              inspect = await image.inspect()
+            } catch (inspectErr) {
+              if (builtImageId) {
+                image = docker.getImage(builtImageId)
+                inspect = await image.inspect()
+                await image.tag({ repo: imageName, tag: 'latest' })
+              } else {
+                throw inspectErr
+              }
+            }
+
+            console.log('✅ Image created successfully')
+            console.log('Image ID:', inspect.Id)
             resolve(imageName)
+          } catch (finalErr) {
+            console.error('❌ Image was NOT created!')
+            console.error(finalErr)
+            reject(finalErr)
           }
         },
         (event) => {
           if (!event) return
+
+          if (event.aux && event.aux.ID) {
+            builtImageId = event.aux.ID
+          }
+
           let message = ''
           if (event.stream) {
             message = event.stream.toString().trim()
@@ -153,14 +263,10 @@ class DockerOrchestrator {
           } else {
             message = JSON.stringify(event)
           }
+
           if (message) {
-            this.emit(sessionId, 'BUILD_LOG', {
-              sessionId,
-              data: message
-            })
-            this.updateSession(sessionId, {
-              logs: [{ type: 'build', message, timestamp: Date.now() }]
-            })
+            console.log('[BUILD]', message)
+            this.emitTerminalOutput(sessionId, 'build', message)
           }
         }
       )
@@ -168,19 +274,34 @@ class DockerOrchestrator {
   }
 
   async runContainer(imageName, sessionId) {
+    console.log('runContainer image:', imageName);
     try {
+      let imageRef = imageName
+      try {
+        const image = docker.getImage(imageName)
+        await image.inspect()
+      } catch (imgErr) {
+        console.warn(`Image ${imageName} not found by tag, trying by image ID fallback.`)
+        if (imgErr.json && imgErr.json.message && imgErr.json.message.includes('No such image')) {
+          imageRef = null
+        }
+      }
+
       this.updateSession(sessionId, {
-        status: 'START_CONTAINER',
+        status: 'RUN_CONTAINER',
         containerStart: Date.now()
       })
-      this.emit(sessionId, 'status', {
-        sessionId,
-        status: 'START_CONTAINER',
+      this.emitStatus(sessionId, {
+        status: 'RUN_CONTAINER',
+        stage: 'container',
+        type: 'info',
+        percent: 60,
         message: 'Starting container...'
       })
+      console.log('Creating container...');
 
-      const container = await docker.createContainer({
-        Image: imageName,
+      const createOptions = {
+        Image: imageRef || imageName,
         Hostname: 'devops-simulator',
         Tty: true,
         AttachStdin: false,
@@ -193,7 +314,9 @@ class DockerOrchestrator {
           AutoRemove: false,
           NetworkMode: 'bridge'
         }
-      })
+      }
+
+      const container = await docker.createContainer(createOptions)
 
       this.containers.set(sessionId, container.id)
       this.updateSession(sessionId, {
@@ -201,10 +324,33 @@ class DockerOrchestrator {
         status: 'CONTAINER_STARTING'
       })
 
-      await container.start()
-      this.emit(sessionId, 'status', {
-        sessionId,
+      console.log("Container created:", container.id);
+
+      console.log("Starting container...");
+      await container.start();
+
+      console.log("Container started successfully!");
+
+      const inspect = await container.inspect();
+
+      console.log("Container State:");
+      console.log(inspect.State);
+
+      if (!inspect.State.Running) {
+          console.log("Container exited immediately!");
+
+          const logs = await container.logs({
+            stdout: true,
+            stderr: true
+          });
+
+          console.log(logs.toString());
+      }
+      this.emitStatus(sessionId, {
         status: 'CONTAINER_RUNNING',
+        stage: 'container',
+        type: 'success',
+        percent: 75,
         message: `Container started: ${container.id.substring(0, 12)}`
       })
       this.updateSession(sessionId, {
@@ -214,10 +360,12 @@ class DockerOrchestrator {
       this.monitorContainerStats(container, sessionId)
       return container
     } catch (error) {
-      this.emit(sessionId, 'status', {
-        sessionId,
+      this.emitStatus(sessionId, {
         status: 'ERROR',
-        error: error.message
+        stage: 'container',
+        type: 'error',
+        error: error.message,
+        message: error.message
       })
       this.updateSession(sessionId, {
         status: 'ERROR',
@@ -229,13 +377,15 @@ class DockerOrchestrator {
 
   async streamLogs(container, sessionId) {
     try {
-      this.emit(sessionId, 'status', {
-        sessionId,
-        status: 'STREAM_LOGS',
+      this.emitStatus(sessionId, {
+        status: 'RUNTIME_LOG',
+        stage: 'container',
+        type: 'info',
+        percent: 80,
         message: 'Streaming container logs...'
       })
       this.updateSession(sessionId, {
-        status: 'STREAM_LOGS'
+        status: 'RUNTIME_LOG'
       })
 
       const stream = await container.logs({
@@ -248,28 +398,26 @@ class DockerOrchestrator {
       stream.on('data', (chunk) => {
         const message = chunk.toString('utf-8')
         if (message.trim()) {
-          this.emit(sessionId, 'RUNTIME_LOG', {
-            sessionId,
-            data: message
-          })
-          this.updateSession(sessionId, {
-            logs: [{ type: 'runtime', message, timestamp: Date.now() }]
-          })
+          this.emitTerminalOutput(sessionId, 'runtime', message)
         }
       })
 
       stream.on('error', (error) => {
-        this.emit(sessionId, 'status', {
-          sessionId,
+        this.emitStatus(sessionId, {
           status: 'ERROR',
-          error: error.message
+          stage: 'container',
+          type: 'error',
+          error: error.message,
+          message: 'Error streaming container logs'
         })
       })
 
       stream.on('end', () => {
-        this.emit(sessionId, 'status', {
-          sessionId,
-          status: 'STREAM_ENDED',
+        this.emitStatus(sessionId, {
+          status: 'FINISHED',
+          stage: 'container',
+          type: 'success',
+          percent: 100,
           message: 'Log stream ended.'
         })
       })

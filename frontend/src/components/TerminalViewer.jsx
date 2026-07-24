@@ -20,9 +20,11 @@ export default function TerminalViewer({ logs }) {
         </div>
       </div>
       <pre className="terminal-output">
-        {logs.map((log, index) => (
-          <div key={index} className={`log-line ${log.type}`}>
-            <span className="log-type">[{log.type.toUpperCase()}]</span>
+        {logs.length === 0 ? (
+          <div className="log-line idle">Waiting for terminal output...</div>
+        ) : logs.map((log, index) => (
+          <div key={index} className={`log-line ${log.type || 'info'}`}>
+            <span className="log-type">[{(log.type || 'INFO').toUpperCase()}]</span>
             <span className="log-content">{log.data}</span>
           </div>
         ))}

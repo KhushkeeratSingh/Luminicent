@@ -15,7 +15,9 @@ const getStageStatus = (status) => {
     'EXTRACTED': 'extract',
     'STARTING_BUILD': 'build',
     'BUILD_LOG': 'build',
+    'BUILD_IMAGE': 'build',
     'BUILD_FAILED': 'build',
+    'RUN_CONTAINER': 'run',
     'CONTAINER_RUNNING': 'run',
     'RUNTIME_LOG': 'run',
     'STOPPING': 'run',
@@ -33,8 +35,10 @@ const getStatusDetail = (status) => {
     'EXTRACTED': 'Package successfully extracted.',
     'STARTING_BUILD': 'Building the Docker image from your app.',
     'BUILD_LOG': 'Docker build is in progress.',
+    'BUILD_IMAGE': 'Docker image build completed.',
     'BUILD_FAILED': 'Image build failed. Check logs for details.',
-    'CONTAINER_RUNNING': 'Launching the container and starting runtime.',
+    'RUN_CONTAINER': 'Launching the container and starting runtime.',
+    'CONTAINER_RUNNING': 'Container is running successfully.',
     'RUNTIME_LOG': 'Streaming runtime logs from the container.',
     'STOPPING': 'Stopping the active simulation session.',
     'CLEANUP': 'Stopping and removing the container.',
@@ -55,7 +59,7 @@ const isStageActive = (stageId, currentStage) => {
   return stageId === currentStage
 }
 
-export default function LivePipeline({ status, sessionId, onStop }) {
+export default function LivePipeline({ status, progress = 0, sessionId, onStop }) {
   const currentStage = getStageStatus(status)
   const isFinished = status === 'FINISHED' || status === 'ERROR'
 
@@ -90,6 +94,10 @@ export default function LivePipeline({ status, sessionId, onStop }) {
         <p>Session ID: <code>{sessionId}</code></p>
         <p>Status: <span className={`status-badge ${status.toLowerCase()}`}>{status}</span></p>
         <p className="status-detail">{getStatusDetail(status)}</p>
+        <div className="progress-wrapper">
+          <progress value={progress} max="100"></progress>
+          <span>{progress}%</span>
+        </div>
         {onStop && !isFinished && (
           <button className="stop-button" onClick={onStop}>
             Stop Simulation
